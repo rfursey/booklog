@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BookLog</title>
+<style>
+  :root {
+    --bg: #0f0f0a;
+    --surface: #1a1a10;
+    --surface2: #24241a;
+    --accent: #c8860a;
+    --accent2: #e8a020;
+    --text: #f0ead6;
+    --muted: #8a8470;
+    --border: #2e2e1e;
+    --star: #f5c518;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-brand { font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+  .nav-brand span { color: var(--text); }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab {
+    background: none; border: none; color: var(--muted);
+    padding: 8px 14px; border-radius: 8px; cursor: pointer;
+    font-size: 14px; font-weight: 500; transition: all 0.15s;
+  }
+  .nav-tab:hover { background: var(--surface2); color: var(--text); }
+  .nav-tab.active { background: var(--accent); color: white; }
+  .btn-add {
+    background: var(--accent); color: white; border: none;
+    padding: 8px 18px; border-radius: 8px; cursor: pointer;
+    font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-add:hover { opacity: 0.85; }
+
+  main { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+
+  .stats { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 20px;
+    flex: 1; min-width: 110px; text-align: center;
+  }
+  .stat-num { font-size: 28px; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .search-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .search-input {
+    flex: 1; min-width: 180px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); padding: 10px 14px; font-size: 14px; outline: none;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .filter-select {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 10px 14px;
+    font-size: 14px; outline: none; cursor: pointer;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    transition: transform 0.15s, border-color 0.15s;
+    display: flex; flex-direction: column;
+  }
+  .card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .card-cover {
+    width: 100%; height: 180px; object-fit: cover;
+    background: var(--surface2); display: block; cursor: pointer;
+  }
+  .card-cover-placeholder {
+    width: 100%; height: 180px; background: var(--surface2);
+    display: flex; align-items: center; justify-content: center; font-size: 52px;
+  }
+  .card-body { padding: 14px; flex: 1; display: flex; flex-direction: column; }
+  .card-genre {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--accent2); margin-bottom: 4px;
+  }
+  .card-title { font-size: 16px; font-weight: 700; margin-bottom: 3px; line-height: 1.3; }
+  .card-author { font-size: 13px; color: var(--muted); margin-bottom: 8px; font-style: italic; }
+  .card-reader {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 3px 10px; font-size: 12px;
+    font-weight: 500; margin-bottom: 8px; width: fit-content;
+  }
+  .card-meta { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .card-stars { color: var(--star); font-size: 14px; margin-bottom: 8px; }
+  .card-notes { font-size: 13px; color: var(--muted); line-height: 1.5; flex: 1; }
+  .card-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn-sm {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); padding: 5px 10px; border-radius: 6px;
+    cursor: pointer; font-size: 12px;
+  }
+  .btn-sm:hover { color: var(--text); border-color: var(--muted); }
+  .btn-sm.danger:hover { color: #ff4444; border-color: #ff4444; }
+
+  .loading { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--muted); }
+  .spinner {
+    width: 40px; height: 40px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); grid-column: 1/-1; }
+  .empty-icon { font-size: 56px; margin-bottom: 16px; }
+  .empty h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 12px 24px; border-radius: 8px;
+    font-size: 14px; z-index: 500; transition: transform 0.3s; pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.error { border-color: #ff4444; color: #ff4444; }
+
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    z-index: 200; align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; width: 100%; max-width: 500px;
+    max-height: 90vh; overflow-y: auto; padding: 24px;
+  }
+  .modal h2 { font-size: 20px; margin-bottom: 20px; }
+  .modal-close {
+    float: right; background: none; border: none; color: var(--muted);
+    font-size: 22px; cursor: pointer; line-height: 1; margin-top: -4px;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .form-group { margin-bottom: 16px; }
+  label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--muted); }
+  input[type="text"], input[type="date"], textarea, select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 10px 12px;
+    font-size: 14px; outline: none; font-family: inherit;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .reader-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+  .reader-btn {
+    background: var(--surface2); border: 2px solid var(--border);
+    color: var(--muted); padding: 8px 16px; border-radius: 20px;
+    cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.15s;
+  }
+  .reader-btn:hover { border-color: var(--accent); color: var(--text); }
+  .reader-btn.selected { background: var(--accent); border-color: var(--accent); color: white; }
+
+  .star-picker { display: flex; gap: 6px; }
+  .star-btn {
+    background: none; border: none; font-size: 24px; cursor: pointer;
+    color: var(--border); transition: color 0.1s; padding: 2px;
+  }
+  .star-btn.lit { color: var(--star); }
+
+  .cover-section {
+    border: 2px dashed var(--border); border-radius: 10px;
+    padding: 16px; text-align: center; margin-bottom: 16px;
+  }
+  .cover-preview {
+    max-width: 140px; max-height: 200px; object-fit: cover;
+    border-radius: 6px; margin: 0 auto 10px; display: none; border: 1px solid var(--border);
+  }
+  .cover-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .btn-upload {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 8px 16px; border-radius: 8px;
+    cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-upload:hover { border-color: var(--accent); }
+  #coverInput { display: none; }
+
+  .btn-save {
+    width: 100%; background: var(--accent); color: white; border: none;
+    padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600;
+    cursor: pointer; margin-top: 4px;
+  }
+  .btn-save:hover { opacity: 0.85; }
+  .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .photo-modal-img { width: 100%; border-radius: 8px; display: block; }
+
+  @media (max-width: 500px) {
+    nav { padding: 0 12px; }
+    .nav-brand { font-size: 16px; }
+    .nav-tab { padding: 6px 8px; font-size: 12px; }
+    .btn-add span { display: none; }
+    main { padding: 16px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">Book<span>Log</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showTab('all')">All</button>
+    <button class="nav-tab" onclick="showTab('Ross')">Ross</button>
+    <button class="nav-tab" onclick="showTab('Tanya')">Tanya</button>
+    <button class="nav-tab" onclick="showTab('Sharon')">Sharon</button>
+    <button class="nav-tab" onclick="showTab('Shannon')">Shannon</button>
+  </div>
+  <button class="btn-add" onclick="openAddModal()">
+    <span style="font-size:18px">+</span> <span>Add Book</span>
+  </button>
+</nav>
+
+<main>
+  <div class="stats">
+    <div class="stat-card"><div class="stat-num" id="stat-total">—</div><div class="stat-label">Total Read</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-this-year">—</div><div class="stat-label">This Year</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-readers">—</div><div class="stat-label">Active Readers</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-avg">—</div><div class="stat-label">Avg Rating</div></div>
+  </div>
+
+  <div class="search-row">
+    <input class="search-input" type="text" id="searchInput" placeholder="Search by title, author or genre..." oninput="renderList()">
+    <select class="filter-select" id="sortSelect" onchange="renderList()">
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+      <option value="rating">Highest rated</option>
+      <option value="title">A–Z by title</option>
+      <option value="author">A–Z by author</option>
+    </select>
+  </div>
+
+  <div class="grid" id="grid">
+    <div class="loading"><div class="spinner"></div><p>Loading your bookshelf...</p></div>
+  </div>
+</main>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('addModal')">&#x2715;</button>
+    <h2 id="modalTitle">Add Book</h2>
+
+    <div class="cover-section">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Upload a photo of the book cover (optional)</p>
+      <img id="coverPreview" class="cover-preview" alt="Cover">
+      <canvas id="coverCanvas" style="display:none"></canvas>
+      <div class="cover-btns">
+        <button class="btn-upload" onclick="document.getElementById('coverInput').click()">📁 Upload Cover Photo</button>
+        <button class="btn-upload" id="clearCoverBtn" style="display:none" onclick="clearCover()">🗑 Remove</button>
+      </div>
+      <input type="file" id="coverInput" accept="image/*" onchange="handleCoverUpload(event)">
+    </div>
+
+    <div class="form-group">
+      <label>Title *</label>
+      <input type="text" id="f-title" placeholder="e.g. The Thursday Murder Club">
+    </div>
+    <div class="form-group">
+      <label>Author</label>
+      <input type="text" id="f-author" placeholder="e.g. Richard Osman">
+    </div>
+    <div class="form-group">
+      <label>Genre</label>
+      <select id="f-genre">
+        <option value="">— Select genre —</option>
+        <option value="Fiction">Fiction</option>
+        <option value="Crime & Thriller">Crime & Thriller</option>
+        <option value="Romance">Romance</option>
+        <option value="Fantasy">Fantasy</option>
+        <option value="Science Fiction">Science Fiction</option>
+        <option value="Historical Fiction">Historical Fiction</option>
+        <option value="Non-Fiction">Non-Fiction</option>
+        <option value="Biography">Biography</option>
+        <option value="Self-Help">Self-Help</option>
+        <option value="Horror">Horror</option>
+        <option value="Children's">Children's</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Who read it?</label>
+      <div class="reader-picker" id="readerPicker">
+        <button class="reader-btn" data-name="Ross" onclick="toggleReader('Ross')">Ross</button>
+        <button class="reader-btn" data-name="Tanya" onclick="toggleReader('Tanya')">Tanya</button>
+        <button class="reader-btn" data-name="Sharon" onclick="toggleReader('Sharon')">Sharon</button>
+        <button class="reader-btn" data-name="Shannon" onclick="toggleReader('Shannon')">Shannon</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Date Finished</label>
+      <input type="date" id="f-date">
+    </div>
+    <div class="form-group">
+      <label>Rating</label>
+      <div class="star-picker">
+        <button class="star-btn" data-val="1" onclick="setRating(1)">★</button>
+        <button class="star-btn" data-val="2" onclick="setRating(2)">★</button>
+        <button class="star-btn" data-val="3" onclick="setRating(3)">★</button>
+        <button class="star-btn" data-val="4" onclick="setRating(4)">★</button>
+        <button class="star-btn" data-val="5" onclick="setRating(5)">★</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <textarea id="f-notes" placeholder="What did you think? Would you recommend it?"></textarea>
+    </div>
+    <button class="btn-save" id="btnSave" onclick="saveEntry()">Save Book</button>
+  </div>
+</div>
+
+<!-- COVER VIEW MODAL -->
+<div class="modal-overlay" id="photoModal">
+  <div class="modal" style="background:#000;border-color:#333;max-width:360px;">
+    <button class="modal-close" onclick="closeModal('photoModal')" style="color:#fff">&#x2715;</button>
+    <img id="photoModalImg" class="photo-modal-img" src="" alt="Cover">
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let entries = [];
+  let currentTab = 'all';
+  let editingId = null;
+  let capturedCover = null;
+  let currentRating = 0;
+  let selectedReaders = [];
+
+  const READERS = ['Ross', 'Tanya', 'Sharon', 'Shannon'];
+
+  // ─── API ─────────────────────────────────────────────────────────────────────
+  async function loadEntries() {
+    try {
+      const res = await fetch('/api/entries');
+      if (!res.ok) throw new Error('Server error ' + res.status);
+      entries = await res.json();
+      renderList();
+    } catch (err) {
+      showToast('Could not load entries — ' + err.message, true);
+      document.getElementById('grid').innerHTML = `<div class="empty">
+        <div class="empty-icon">⚠️</div>
+        <h3>Could not connect</h3><p>${err.message}</p>
+      </div>`;
+    }
+  }
+
+  async function apiSave(entry) {
+    const res = await fetch('/api/entries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry)
+    });
+    if (!res.ok) throw new Error('Save failed: ' + res.status);
+    return res.json();
+  }
+
+  async function apiDelete(id) {
+    const res = await fetch('/api/entries/' + id, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Delete failed: ' + res.status);
+  }
+
+  // ─── TABS ─────────────────────────────────────────────────────────────────────
+  function showTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.nav-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.textContent.trim() === tab || (tab === 'all' && btn.textContent.trim() === 'All'));
+    });
+    renderList();
+  }
+
+  // ─── RENDER ──────────────────────────────────────────────────────────────────
+  function renderList() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const sort = document.getElementById('sortSelect').value;
+
+    let list = entries.filter(e => {
+      const matchTab = currentTab === 'all' || (e.readers || []).includes(currentTab);
+      const matchSearch = !q
+        || (e.title||'').toLowerCase().includes(q)
+        || (e.author||'').toLowerCase().includes(q)
+        || (e.genre||'').toLowerCase().includes(q)
+        || (e.notes||'').toLowerCase().includes(q);
+      return matchTab && matchSearch;
+    });
+
+    list.sort((a, b) => {
+      if (sort === 'newest') return new Date(b.date||0) - new Date(a.date||0);
+      if (sort === 'oldest') return new Date(a.date||0) - new Date(b.date||0);
+      if (sort === 'rating') return (b.rating||0) - (a.rating||0);
+      if (sort === 'title') return (a.title||'').localeCompare(b.title||'');
+      if (sort === 'author') return (a.author||'').localeCompare(b.author||'');
+      return 0;
+    });
+
+    const grid = document.getElementById('grid');
+    if (list.length === 0) {
+      grid.innerHTML = `<div class="empty">
+        <div class="empty-icon">📚</div>
+        <h3>${q ? 'No results found' : 'No books logged yet'}</h3>
+        <p>${q ? 'Try a different search term' : 'Hit + Add Book to get started'}</p>
+      </div>`;
+    } else {
+      grid.innerHTML = list.map(e => cardHTML(e)).join('');
+    }
+    updateStats();
+  }
+
+  function cardHTML(e) {
+    const stars = e.rating ? '★'.repeat(e.rating) + '☆'.repeat(5 - e.rating) : '';
+    const cover = e.cover
+      ? `<img class="card-cover" src="${e.cover}" onclick="viewCover('${e.id}')" alt="Cover">`
+      : `<div class="card-cover-placeholder">📖</div>`;
+    const date = e.date ? new Date(e.date + 'T12:00:00').toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : '';
+    const readers = (e.readers||[]).join(', ');
+    return `<div class="card">
+      ${cover}
+      <div class="card-body">
+        ${e.genre ? `<div class="card-genre">📚 ${escHtml(e.genre)}</div>` : ''}
+        <div class="card-title">${escHtml(e.title)}</div>
+        ${e.author ? `<div class="card-author">by ${escHtml(e.author)}</div>` : ''}
+        ${readers ? `<div class="card-reader">👤 ${escHtml(readers)}</div>` : ''}
+        ${date ? `<div class="card-meta">Finished ${date}</div>` : ''}
+        ${stars ? `<div class="card-stars">${stars}</div>` : ''}
+        ${e.notes ? `<div class="card-notes">${escHtml(e.notes)}</div>` : ''}
+        <div class="card-actions">
+          <button class="btn-sm" onclick="editEntry('${e.id}')">✏ Edit</button>
+          <button class="btn-sm danger" onclick="deleteEntry('${e.id}')">🗑 Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function updateStats() {
+    const thisYear = new Date().getFullYear();
+    const thisYearCount = entries.filter(e => e.date && new Date(e.date).getFullYear() === thisYear).length;
+    const activeReaders = new Set(entries.flatMap(e => e.readers||[])).size;
+    const ratings = entries.filter(e => e.rating).map(e => e.rating);
+    const avg = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1) : '—';
+    document.getElementById('stat-total').textContent = entries.length;
+    document.getElementById('stat-this-year').textContent = thisYearCount;
+    document.getElementById('stat-readers').textContent = activeReaders || '—';
+    document.getElementById('stat-avg').textContent = avg === '—' ? '—' : avg + '★';
+  }
+
+  // ─── MODAL ───────────────────────────────────────────────────────────────────
+  function openAddModal(id = null) {
+    editingId = id;
+    capturedCover = null;
+    currentRating = 0;
+    selectedReaders = [];
+
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('modalTitle').textContent = id ? 'Edit Book' : 'Add Book';
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-author').value = '';
+    document.getElementById('f-genre').value = '';
+    document.getElementById('f-date').value = today;
+    document.getElementById('f-notes').value = '';
+    document.getElementById('coverPreview').style.display = 'none';
+    document.getElementById('clearCoverBtn').style.display = 'none';
+    updateStarUI(0);
+    updateReaderUI([]);
+
+    if (id) {
+      const e = entries.find(x => x.id === id);
+      if (e) {
+        document.getElementById('f-title').value = e.title||'';
+        document.getElementById('f-author').value = e.author||'';
+        document.getElementById('f-genre').value = e.genre||'';
+        document.getElementById('f-date').value = e.date||today;
+        document.getElementById('f-notes').value = e.notes||'';
+        currentRating = e.rating||0;
+        selectedReaders = [...(e.readers||[])];
+        updateStarUI(currentRating);
+        updateReaderUI(selectedReaders);
+        if (e.cover) {
+          capturedCover = e.cover;
+          document.getElementById('coverPreview').src = e.cover;
+          document.getElementById('coverPreview').style.display = 'block';
+          document.getElementById('clearCoverBtn').style.display = 'inline-flex';
+        }
+      }
+    }
+    document.getElementById('addModal').classList.add('open');
+  }
+
+  function editEntry(id) { openAddModal(id); }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  async function saveEntry() {
+    const title = document.getElementById('f-title').value.trim();
+    if (!title) { showToast('Please enter a title', true); return; }
+
+    const entry = {
+      id: editingId || Date.now().toString(),
+      title,
+      author: document.getElementById('f-author').value.trim(),
+      genre: document.getElementById('f-genre').value,
+      readers: selectedReaders,
+      date: document.getElementById('f-date').value,
+      rating: currentRating,
+      notes: document.getElementById('f-notes').value.trim(),
+      cover: capturedCover || null,
+    };
+
+    const btn = document.getElementById('btnSave');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    try {
+      const saved = await apiSave(entry);
+      if (editingId) {
+        const idx = entries.findIndex(x => x.id === editingId);
+        if (idx !== -1) entries[idx] = saved;
+      } else {
+        entries.unshift(saved);
+      }
+      closeModal('addModal');
+      renderList();
+      showToast(editingId ? 'Book updated!' : 'Book saved!');
+    } catch (err) {
+      showToast('Could not save — ' + err.message, true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Book';
+    }
+  }
+
+  async function deleteEntry(id) {
+    if (!confirm('Delete this book?')) return;
+    try {
+      await apiDelete(id);
+      entries = entries.filter(x => x.id !== id);
+      renderList();
+      showToast('Book deleted');
+    } catch (err) {
+      showToast('Could not delete — ' + err.message, true);
+    }
+  }
+
+  // ─── READERS ─────────────────────────────────────────────────────────────────
+  function toggleReader(name) {
+    if (selectedReaders.includes(name)) {
+      selectedReaders = selectedReaders.filter(r => r !== name);
+    } else {
+      selectedReaders.push(name);
+    }
+    updateReaderUI(selectedReaders);
+  }
+
+  function updateReaderUI(selected) {
+    document.querySelectorAll('.reader-btn').forEach(btn => {
+      btn.classList.toggle('selected', selected.includes(btn.dataset.name));
+    });
+  }
+
+  // ─── STARS ───────────────────────────────────────────────────────────────────
+  function setRating(val) { currentRating = val; updateStarUI(val); }
+  function updateStarUI(val) {
+    document.querySelectorAll('.star-btn').forEach(btn => {
+      btn.classList.toggle('lit', parseInt(btn.dataset.val) <= val);
+    });
+  }
+
+  // ─── COVER UPLOAD ────────────────────────────────────────────────────────────
+  function handleCoverUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const maxH = 400;
+      const scale = Math.min(1, maxH / img.naturalHeight);
+      const canvas = document.getElementById('coverCanvas');
+      canvas.width = Math.round(img.naturalWidth * scale);
+      canvas.height = Math.round(img.naturalHeight * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      capturedCover = canvas.toDataURL('image/jpeg', 0.75);
+      document.getElementById('coverPreview').src = capturedCover;
+      document.getElementById('coverPreview').style.display = 'block';
+      document.getElementById('clearCoverBtn').style.display = 'inline-flex';
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+    e.target.value = '';
+  }
+
+  function clearCover() {
+    capturedCover = null;
+    document.getElementById('coverPreview').style.display = 'none';
+    document.getElementById('clearCoverBtn').style.display = 'none';
+  }
+
+  function viewCover(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e || !e.cover) return;
+    document.getElementById('photoModalImg').src = e.cover;
+    document.getElementById('photoModal').classList.add('open');
+  }
+
+  // ─── TOAST ───────────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isError ? ' error' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+  });
+
+  loadEntries();
+</script>
+</body>
+</html>
